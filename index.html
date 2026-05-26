@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>AI 智能生图</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f7f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .container { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 560px; }
+        h1 { color: #2c3e50; margin-bottom: 30px; }
+        input { width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        .style-label { margin-top: 20px; margin-bottom: 8px; color: #888; font-size: 13px; text-align: left; }
+        .style-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+        .style-btn { width: auto; padding: 8px 14px; font-size: 13px; margin-top: 0; border-radius: 20px; background-color: #f0f0f0; color: #333; border: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
+        .style-btn:hover { background-color: #e0e0e0; }
+        .style-btn.active { background-color: #e8f0fe; color: #007bff; border-color: #007bff; }
+        button.main-btn { width: 100%; background-color: #007bff; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; margin-top: 20px; cursor: pointer; transition: background-color 0.3s; }
+        button.main-btn:hover:not(:disabled) { background-color: #0056b3; }
+        button.main-btn:disabled { background-color: #aaa; cursor: not-allowed; }
+        #status { margin-top: 20px; font-size: 14px; min-height: 24px; padding: 10px; border-radius: 8px; display: none; }
+        #status.info { display: block; background-color: #f0f4ff; color: #555; }
+        #status.success { display: block; background-color: #e6f9f0; color: #27ae60; }
+        #status.error { display: block; background-color: #fef0f0; color: #e74c3c; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 3px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #result { margin-top: 20px; }
+        #result img { width: 100%; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .download-btn { display: inline-block; margin-top: 12px; padding: 10px 24px; background-color: #27ae60; color: white; border-radius: 8px; font-size: 15px; text-decoration: none; cursor: pointer; transition: background-color 0.3s; }
+        .download-btn:hover { background-color: #1e8449; }
+        #history-section { margin-top: 40px; text-align: left; }
+        .history-label { color: #888; font-size: 13px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .clear-btn { font-size: 12px; color: #e74c3c; cursor: pointer; background: none; border: none; padding: 0; }
+        .clear-btn:hover { text-decoration: underline; }
+        .history-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .history-item { border-radius: 10px; overflow: hidden; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
+        .history-item img { width: 100%; display: block; }
+        .history-item .hist-label { font-size: 10px; color: #666; padding: 4px 6px; background: #f9f9f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .history-item a { display: block; text-align: center; padding: 4px; font-size: 11px; background-color: #27ae60; color: white; text-decoration: none; }
+        .history-item a:hover { background-color: #1e8449; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 AI 智能生图</h1>
+        <input type="text" id="prompt" placeholder="描述你想要的画面...">
+
+        <div class="style-label">🎭 选择风格（可选）</div>
+        <div class="style-buttons">
+            <button class="style-btn" onclick="selectStyle(this, 'cyberpunk style, neon lights, futuristic city')">🌆 赛博朋克</button>
+            <button class="style-btn" onclick="selectStyle(this, 'oil painting style, impressionist, rich colors')">🖼️ 油画</button>
+            <button class="style-btn" onclick="selectStyle(this, 'photorealistic, 8k, ultra detailed, professional photo')">📷 写实摄影</button>
+            <button class="style-btn" onclick="selectStyle(this, 'anime style, Studio Ghibli, soft colors')">🌸 日系动漫</button>
+            <button class="style-btn" onclick="selectStyle(this, 'watercolor painting, soft edges, dreamy')">🎨 水彩</button>
+            <button class="style-btn" onclick="selectStyle(this, 'Chinese traditional painting, ink wash, ancient style, Tang dynasty aesthetic')">🏮 中国国风</button>
+            <button class="style-btn" onclick="selectStyle(this, 'pixel art, 8-bit retro game style, pixelated')">👾 像素游戏</button>
+            <button class="style-btn" onclick="selectStyle(this, 'dark gothic style, dramatic shadows, gloomy atmosphere, horror aesthetic')">🌑 暗黑哥特</button>
+            <button class="style-btn" onclick="selectStyle(this, 'Korean portrait photography, soft skin, natural light, ulzzang style')">📸 韩系写真</button>
+            <button class="style-btn" onclick="selectStyle(this, 'sci-fi space, galaxy, futuristic spacecraft, cosmic nebula')">🚀 星际科幻</button>
+            <button class="style-btn" onclick="selectStyle(this, 'Chinese wuxia cyberpunk, ancient warrior meets neon city, martial arts futuristic')">🎌 赛博武侠</button>
+            <button class="style-btn" onclick="selectStyle(this, 'black and white sketch, ink drawing, fine line art, monochrome')">🖤 黑白素描</button>
+            <button class="style-btn" onclick="selectStyle(this, 'ink wash painting, Chinese ink art, sumi-e, black ink brush strokes, traditional East Asian art')">🎋 水墨风格</button>
+            <button class="style-btn" onclick="selectStyle(this, 'dreamcore aesthetic, surreal landscape, liminal space, ethereal fog')">🌊 梦核幻境</button>
+            <button class="style-btn" onclick="selectStyle(this, 'glass material, transparent, crystal clear, glossy 3D render')">🧊 玻璃质感</button>
+        </div>
+
+        <button class="main-btn" id="btn" onclick="generate()">立即生成图片</button>
+        <div id="status"></div>
+        <div id="result"></div>
+
+        <div id="history-section" style="display:none;">
+            <div class="history-label">
+                <span>🕘 本次生成历史</span>
+                <button class="clear-btn" onclick="clearHistory()">清空历史</button>
+            </div>
+            <div class="history-grid" id="history-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        let selectedStyle = "";
+        let history = [];
+
+        function selectStyle(el, styleKeywords) {
+            if (el.classList.contains("active")) {
+                el.classList.remove("active");
+                selectedStyle = "";
+                return;
+            }
+            document.querySelectorAll(".style-btn").forEach(btn => btn.classList.remove("active"));
+            el.classList.add("active");
+            selectedStyle = styleKeywords;
+        }
+
+        function setStatus(msg, type) {
+            const s = document.getElementById("status");
+            s.textContent = msg;
+            s.className = type;
+        }
+
+        function addToHistory(imageUrl, prompt) {
+            history.unshift({ imageUrl, prompt });
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const section = document.getElementById("history-section");
+            const grid = document.getElementById("history-grid");
+
+            if (history.length === 0) {
+                section.style.display = "none";
+                return;
+            }
+
+            section.style.display = "block";
+            grid.innerHTML = "";
+
+            history.forEach((item, index) => {
+                const div = document.createElement("div");
+                div.className = "history-item";
+
+                const img = document.createElement("img");
+                img.src = item.imageUrl;
+                div.appendChild(img);
+
+                const label = document.createElement("div");
+                label.className = "hist-label";
+                label.textContent = item.prompt;
+                div.appendChild(label);
+
+                const link = document.createElement("a");
+                link.href = item.imageUrl;
+                link.download = "AI生图_" + index + ".png";
+                link.textContent = "⬇️ 下载";
+                link.target = "_blank";
+                div.appendChild(link);
+
+                grid.appendChild(div);
+            });
+        }
+
+        function clearHistory() {
+            history = [];
+            renderHistory();
+        }
+
+        async function generate() {
+            const promptInput = document.getElementById("prompt");
+            const resultDiv = document.getElementById("result");
+            const btn = document.getElementById("btn");
+
+            if (!promptInput.value) return alert("请输入描述内容！");
+
+            const finalPrompt = selectedStyle
+                ? promptInput.value + ", " + selectedStyle
+                : promptInput.value;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>生成中...';
+            setStatus("🚀 正在拼命画画中，请稍后...", "info");
+            resultDiv.innerHTML = "";
+
+            try {
+                const res = await fetch("/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: finalPrompt })
+                });
+
+                if (res.status === 401) { setStatus("❌ API Key 无效，请检查 .env 文件", "error"); return; }
+                if (res.status === 429) { setStatus("⏳ 请求太频繁，请等待几秒后重试", "error"); return; }
+                if (res.status === 500) { setStatus("❌ 服务器出错，可能是 API 余额不足", "error"); return; }
+
+                const data = await res.json();
+
+                if (data.image_url) {
+                    const img = document.createElement("img");
+                    img.src = data.image_url;
+                    resultDiv.appendChild(img);
+
+                    const downloadBtn = document.createElement("a");
+                    downloadBtn.href = data.image_url;
+                    downloadBtn.download = "AI生图_" + Date.now() + ".png";
+                    downloadBtn.textContent = "⬇️ 下载图片";
+                    downloadBtn.className = "download-btn";
+                    downloadBtn.target = "_blank";
+                    resultDiv.appendChild(downloadBtn);
+
+                    setStatus("✅ 生成成功！", "success");
+                    addToHistory(data.image_url, promptInput.value);
+                } else {
+                    setStatus("❌ 生成失败，请重试", "error");
+                }
+            } catch (e) {
+                setStatus("❌ 无法连接服务器，请确认 Flask 是否正在运行", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "立即生成图片";
+            }
+        }
+    </script>
+</body>
+</html>
