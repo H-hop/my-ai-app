@@ -158,26 +158,37 @@
             setStatus("🚀 正在拼命画画中，请稍后...", "info");
             resultDiv.innerHTML = "";
 
+            // ⬇️ 把 YOUR_API_KEY 替换成你真实的 SiliconFlow API Key
+            const API_KEY = "sk-xphjsbzrxpdqrvictwrbiapdedyznpvfudyu1fhbhmfhjgmd";
+
             try {
-                const res = await fetch("/generate", {
+                const res = await fetch("https://api.siliconflow.cn/v1/images/generations", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: finalPrompt })
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + API_KEY
+                    },
+                    body: JSON.stringify({
+                        model: "Kwai-Kolors/Kolors",
+                        prompt: finalPrompt,
+                        n: 1
+                    })
                 });
 
-                if (res.status === 401) { setStatus("❌ API Key 无效，请检查 .env 文件", "error"); return; }
-                if (res.status === 429) { setStatus("⏳ 请求太频繁，请等待几秒后重试", "error"); return; }
-                if (res.status === 500) { setStatus("❌ 服务器出错，可能是 API 余额不足", "error"); return; }
+                if (res.status === 401) { setStatus("❌ API Key 无效，请检查", "error"); return; }
+                if (res.status === 429) { setStatus("⏳ 请求太频繁，请稍后重试", "error"); return; }
+                if (res.status === 500) { setStatus("❌ 服务器出错，可能余额不足", "error"); return; }
 
                 const data = await res.json();
+                const imageUrl = data?.data?.[0]?.url;
 
-                if (data.image_url) {
+                if (imageUrl) {
                     const img = document.createElement("img");
-                    img.src = data.image_url;
+                    img.src = imageUrl;
                     resultDiv.appendChild(img);
 
                     const downloadBtn = document.createElement("a");
-                    downloadBtn.href = data.image_url;
+                    downloadBtn.href = imageUrl;
                     downloadBtn.download = "AI生图_" + Date.now() + ".png";
                     downloadBtn.textContent = "⬇️ 下载图片";
                     downloadBtn.className = "download-btn";
@@ -185,12 +196,12 @@
                     resultDiv.appendChild(downloadBtn);
 
                     setStatus("✅ 生成成功！", "success");
-                    addToHistory(data.image_url, promptInput.value);
+                    addToHistory(imageUrl, promptInput.value);
                 } else {
                     setStatus("❌ 生成失败，请重试", "error");
                 }
             } catch (e) {
-                setStatus("❌ 无法连接服务器，请确认 Flask 是否正在运行", "error");
+                setStatus("❌ 网络错误：" + e.message, "error");
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = "立即生成图片";
