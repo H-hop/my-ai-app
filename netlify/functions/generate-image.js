@@ -24,13 +24,16 @@ function downloadFile(url, dest) {
 
 async function sendFeishuNotification(prompt, imageUrl, savedPath) {
   const webhookUrl = process.env.FEISHU_WEBHOOK_URL;
-  if (!webhookUrl) return;
+  if (!webhookUrl) {
+    console.log("FEISHU_WEBHOOK_URL not set, skipping notification");
+    return;
+  }
 
   const body = {
     msg_type: "interactive",
     card: {
       header: {
-        title: { tag: "plain_text", content: "✅ AI 生图完成" },
+        title: { tag: "plain_text", content: "AI 生图完成" },
         template: "green"
       },
       elements: [
@@ -44,14 +47,14 @@ async function sendFeishuNotification(prompt, imageUrl, savedPath) {
         {
           tag: "note",
           elements: [
-            { tag: "plain_text", content: `📁 已保存至：${savedPath}` }
+            { tag: "plain_text", content: `已保存至：${savedPath}` }
           ]
         },
         {
           tag: "action",
           actions: [{
             tag: "button",
-            text: { tag: "plain_text", content: "🔗 查看原图" },
+            text: { tag: "plain_text", content: "查看原图" },
             url: imageUrl,
             type: "default"
           }]
@@ -60,11 +63,13 @@ async function sendFeishuNotification(prompt, imageUrl, savedPath) {
     }
   };
 
-  await fetch(webhookUrl, {
+  const feishuRes = await fetch(webhookUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body)
   });
+  const feishuData = await feishuRes.json();
+  console.log("Feishu webhook response:", JSON.stringify(feishuData));
 }
 
 exports.handler = async function(event, context) {
@@ -101,16 +106,10 @@ exports.handler = async function(event, context) {
       }
       const filePath = path.join(dir, filename);
       await downloadFile(imageUrl, filePath);
-      // 发送飞书通知（不阻塞返回）
-      sendFeishuNotification(prompt, imageUrl, `static/sh1/${filename}`).catch(
-        e => console.error("Feishu notification failed:", e.message)
-      );
+      await sendFeishuNotification(prompt, imageUrl, `static/sh1/${filename}`);
     } catch (err) {
       console.error("Failed to save image locally:", err.message);
-      // 即使保存失败也尝试发通知
-      sendFeishuNotification(prompt, imageUrl, "未能保存").catch(
-        e => console.error("Feishu notification failed:", e.message)
-      );
+      await sendFeishuNotification(prompt, imageUrl, "未能保存");
     }
   }
 
